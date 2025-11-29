@@ -2,14 +2,14 @@
 
 A KDE Plasma 6 widget that displays your Claude Code usage statistics in the taskbar.
 
-![Panel Preview](screenshots/panel.png)
+![Popup](screenshots/popup.png)
 
 ## Features
 
-- **Real-time Usage Display**: Shows session (5hr) and weekly (7day) usage percentages
+- **Compact Panel Display**: Shows session and weekly usage percentages right in your taskbar
+  ![Panel](screenshots/panel.png)
 - **Color-coded Indicators**: Green (<50%), Yellow (<80%), Red (≥80%)
 - **Detailed Popup**: Click to see full statistics
-  ![Popup](screenshots/popup.png)
   - Session and weekly usage with progress bars
   - Reset times for both limits
   - Per-model breakdown (Sonnet/Opus)
