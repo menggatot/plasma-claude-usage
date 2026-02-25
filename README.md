@@ -68,7 +68,7 @@ If you use a custom API proxy or gateway, you can override this:
 | **Base URL** | Your proxy URL, e.g. `https://your-proxy.example.com` |
 | **API key** | Your `ANTHROPIC_API_KEY` |
 
-> **Note:** The widget calls `/api/oauth/usage`, not the standard `/v1/messages` endpoint. Use the root URL without any path suffix — e.g. `https://api.anthropic.com`, not `https://api.anthropic.com/v1`. If you have `ANTHROPIC_BASE_URL` set to a `/v1` URL elsewhere (common for the Anthropic SDK), do not copy that value here.
+> **Note:** The widget calls `/api/oauth/usage`, not the standard `/v1/messages` endpoint. Use the root URL without any path suffix — e.g. `https://api.anthropic.com`, not `https://api.anthropic.com/v1`.
 
 When a base URL is configured, the widget authenticates with `x-api-key` instead of the OAuth token. Leave the Base URL field empty to go back to the default credentials file method.
 
