@@ -24,11 +24,11 @@ PlasmoidItem {
     property string weeklyReset: ""
     property string errorMsg: ""
     property string accessToken: ""
+    property string apiKey: ""
+    property string baseUrl: ""
     property bool isLoading: false
     property var sessionResetTime: null
     property var weeklyResetTime: null
-
-    readonly property string usageApiUrl: "https://api.anthropic.com/api/oauth/usage"
 
     // Data source for reading credentials file
     Plasma5Support.DataSource {
@@ -81,16 +81,43 @@ PlasmoidItem {
     function loadCredentials() {
         root.isLoading = true
         root.errorMsg = ""
-        // Use $HOME environment variable
-        fileReader.connectSource("cat $HOME/.claude/.credentials.json 2>/dev/null")
+        var configBaseUrl = (Plasmoid.configuration.baseUrl || "").trim()
+        if (configBaseUrl) {
+            root.baseUrl = configBaseUrl.replace(/\/$/, "")
+            root.apiKey = (Plasmoid.configuration.apiKey || "").trim()
+            root.planName = "API Key"
+            console.log("Claude Usage: Using configured base URL:", root.baseUrl)
+            if (root.apiKey) {
+                fetchUsageFromApi()
+            } else {
+                root.errorMsg = "API key not configured"
+                root.isLoading = false
+            }
+        } else {
+            root.baseUrl = ""
+            root.apiKey = ""
+            console.log("Claude Usage: No base URL configured, reading credentials file")
+            fileReader.connectSource("cat $HOME/.claude/.credentials.json 2>/dev/null")
+        }
     }
 
     function fetchUsageFromApi() {
+        var url = root.baseUrl
+            ? root.baseUrl + "/api/oauth/usage"
+            : "https://api.anthropic.com/api/oauth/usage"
+
         var xhr = new XMLHttpRequest()
-        xhr.open("GET", usageApiUrl)
-        xhr.setRequestHeader("Authorization", "Bearer " + root.accessToken)
+        xhr.open("GET", url)
         xhr.setRequestHeader("Content-Type", "application/json")
-        xhr.setRequestHeader("anthropic-beta", "oauth-2025-04-20")
+
+        if (root.baseUrl) {
+            // Custom base URL: authenticate with API key
+            xhr.setRequestHeader("x-api-key", root.apiKey)
+        } else {
+            // Default: OAuth token from credentials file
+            xhr.setRequestHeader("Authorization", "Bearer " + root.accessToken)
+            xhr.setRequestHeader("anthropic-beta", "oauth-2025-04-20")
+        }
 
         xhr.onreadystatechange = function() {
             if (xhr.readyState === XMLHttpRequest.DONE) {
