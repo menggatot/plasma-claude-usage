@@ -29,6 +29,8 @@ PlasmoidItem {
     property bool isLoading: false
     property var sessionResetTime: null
     property var weeklyResetTime: null
+    property bool hasSonnetData: false
+    property bool hasOpusData: false
 
     // Data source for reading credentials file
     Plasma5Support.DataSource {
@@ -110,13 +112,14 @@ PlasmoidItem {
         xhr.open("GET", url)
         xhr.setRequestHeader("Content-Type", "application/json")
 
+        xhr.setRequestHeader("anthropic-beta", "oauth-2025-04-20")
+
         if (root.baseUrl) {
             // Custom base URL: authenticate with API key
             xhr.setRequestHeader("x-api-key", root.apiKey)
         } else {
             // Default: OAuth token from credentials file
             xhr.setRequestHeader("Authorization", "Bearer " + root.accessToken)
-            xhr.setRequestHeader("anthropic-beta", "oauth-2025-04-20")
         }
 
         xhr.onreadystatechange = function() {
@@ -129,13 +132,13 @@ PlasmoidItem {
 
                         var fiveHour = data.five_hour || {}
                         var sevenDay = data.seven_day || {}
-                        var sevenDaySonnet = data.seven_day_sonnet || {}
-                        var sevenDayOpus = data.seven_day_opus || {}
 
                         root.sessionUsagePercent = fiveHour.utilization || 0
                         root.weeklyUsagePercent = sevenDay.utilization || 0
-                        root.sonnetWeeklyPercent = sevenDaySonnet ? (sevenDaySonnet.utilization || 0) : 0
-                        root.opusWeeklyPercent = sevenDayOpus ? (sevenDayOpus.utilization || 0) : 0
+                        root.hasSonnetData = !!data.seven_day_sonnet
+                        root.hasOpusData = !!data.seven_day_opus
+                        root.sonnetWeeklyPercent = root.hasSonnetData ? (data.seven_day_sonnet.utilization || 0) : 0
+                        root.opusWeeklyPercent = root.hasOpusData ? (data.seven_day_opus.utilization || 0) : 0
 
                         if (fiveHour.resets_at) {
                             root.sessionResetTime = new Date(fiveHour.resets_at)
@@ -155,8 +158,15 @@ PlasmoidItem {
                         root.errorMsg = "Parse error"
                     }
                 } else if (xhr.status === 401) {
-                    root.errorMsg = i18n.tr("Token expired")
+                    root.errorMsg = root.baseUrl
+                        ? "Invalid API key"
+                        : i18n.tr("Token expired")
                     console.log("Claude Usage: 401 Unauthorized")
+                } else if (xhr.status === 404) {
+                    root.errorMsg = root.baseUrl
+                        ? "Endpoint not found — check base URL"
+                        : i18n.tr("API error") + " (404)"
+                    console.log("Claude Usage: 404 Not Found:", url)
                 } else {
                     root.errorMsg = i18n.tr("API error") + " (" + xhr.status + ")"
                     console.log("Claude Usage: API error:", xhr.status, xhr.statusText)
@@ -306,7 +316,9 @@ PlasmoidItem {
                         font.bold: true
                     }
                     PlasmaComponents.Label {
-                        text: i18n.tr("Run 'claude' to log in")
+                        text: root.baseUrl
+                            ? i18n.tr("Check base URL and API key in widget settings")
+                            : i18n.tr("Run 'claude' to log in")
                         font.pixelSize: Kirigami.Theme.smallFont.pixelSize
                         color: Kirigami.Theme.negativeTextColor
                     }
@@ -423,7 +435,7 @@ PlasmoidItem {
             // Sonnet
             RowLayout {
                 Layout.fillWidth: true
-                visible: root.sonnetWeeklyPercent > 0
+                visible: root.hasSonnetData
 
                 PlasmaComponents.Label {
                     text: i18n.tr("Sonnet")
@@ -453,7 +465,7 @@ PlasmoidItem {
             // Opus
             RowLayout {
                 Layout.fillWidth: true
-                visible: root.opusWeeklyPercent > 0
+                visible: root.hasOpusData
 
                 PlasmaComponents.Label {
                     text: i18n.tr("Opus")
@@ -482,7 +494,7 @@ PlasmoidItem {
 
             // No model data message
             PlasmaComponents.Label {
-                visible: root.sonnetWeeklyPercent === 0 && root.opusWeeklyPercent === 0
+                visible: !root.hasSonnetData && !root.hasOpusData
                 text: i18n.tr("No model breakdown available")
                 font.pixelSize: Kirigami.Theme.smallFont.pixelSize
                 color: Kirigami.Theme.disabledTextColor
